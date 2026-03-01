@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SoundLock</string>
+    <string name="channel_name">SoundLock Playback</string>
+    <string name="notification_title">SoundLock</string>
+    <string name="notification_text">Audio experience in progress...</string>
+</resources>
