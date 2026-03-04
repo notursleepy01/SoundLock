@@ -25,6 +25,16 @@ class MainActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private var experienceRunning = false
 
+    // Repeatedly re-enforces max volume every 200ms so background changes are caught
+    private val volumeEnforcer = object : Runnable {
+        override fun run() {
+            if (!experienceRunning) return
+            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+            handler.postDelayed(this, 200L)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -72,13 +82,19 @@ class MainActivity : AppCompatActivity() {
         val serviceIntent = Intent(this, MusicService::class.java)
         ContextCompat.startForegroundService(this, serviceIntent)
 
-        // 7. Restore everything after 10 seconds
+        // 7. Start background volume enforcer
+        handler.post(volumeEnforcer)
+
+        // 8. Restore everything after 10 seconds
         handler.postDelayed({ stopExperience() }, 10_000L)
     }
 
     private fun stopExperience() {
         if (!experienceRunning) return
         experienceRunning = false
+
+        // Stop volume enforcer
+        handler.removeCallbacks(volumeEnforcer)
 
         // Restore volume
         audioManager.setStreamVolume(
