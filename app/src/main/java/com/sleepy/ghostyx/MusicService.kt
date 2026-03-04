@@ -105,8 +105,7 @@ class MusicService : Service() {
             start()
         }
 
-        // Stop everything after 10 seconds regardless
-        handler.postDelayed({ stopSelf() }, 10_000L)
+        // Service runs until explicitly stopped (e.g. from MainActivity)
 
         return START_STICKY
     }
