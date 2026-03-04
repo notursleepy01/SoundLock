@@ -5,6 +5,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Build
@@ -24,6 +26,7 @@ class MusicService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private val handler = Handler(Looper.getMainLooper())
     private var originalVolume: Int = -1
+    private var audioFocusRequest: AudioFocusRequest? = null
 
     // Re-enforce max volume every 200ms even when app is swiped away
     private val volumeEnforcer = object : Runnable {
@@ -49,6 +52,13 @@ class MusicService : Service() {
         val notification = buildNotification()
         startForeground(NOTIFICATION_ID, notification)
 
+        // Request audio focus — required on Android 15 for mediaPlayback foreground service
+        val focusGranted = requestAudioFocus()
+        if (!focusGranted) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
         // Save and force max volume
         originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
@@ -73,6 +83,39 @@ class MusicService : Service() {
         return START_STICKY
     }
 
+    private fun requestAudioFocus(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val attrs = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build()
+            val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+                .setAudioAttributes(attrs)
+                .setAcceptsDelayedFocusGain(false)
+                .setOnAudioFocusChangeListener { /* hold focus, ignore changes */ }
+                .build()
+            audioFocusRequest = request
+            audioManager.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.requestAudioFocus(
+                null,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE
+            ) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        }
+    }
+
+    private fun abandonAudioFocus() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.abandonAudioFocus(null)
+        }
+        audioFocusRequest = null
+    }
+
     override fun onDestroy() {
         super.onDestroy()
 
@@ -83,6 +126,9 @@ class MusicService : Service() {
         if (originalVolume >= 0) {
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume, 0)
         }
+
+        // Abandon audio focus
+        abandonAudioFocus()
 
         // Release media player
         mediaPlayer?.stop()
