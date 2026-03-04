@@ -129,8 +129,8 @@ class MainActivity : AppCompatActivity() {
         // 7. Start background volume enforcer
         handler.post(volumeEnforcer)
 
-        // 8. Force screen off after a short delay so service is running before screen turns off
-        handler.postDelayed({ forceScreenOff() }, 500L)
+        // 8. Move app to background so screen can turn off — user can't reach recents
+        handler.postDelayed({ moveTaskToBack(true) }, 500L)
 
         // 9. Restore everything after 10 seconds
         handler.postDelayed({ stopExperience() }, 10_000L)

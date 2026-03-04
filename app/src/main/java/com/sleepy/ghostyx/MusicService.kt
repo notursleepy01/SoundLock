@@ -14,7 +14,11 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
+import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
+import androidx.media.app.NotificationCompat as MediaNotificationCompat
 
 class MusicService : Service() {
 
@@ -23,6 +27,7 @@ class MusicService : Service() {
     private val NOTIFICATION_ID = 1
 
     private lateinit var audioManager: AudioManager
+    private lateinit var mediaSession: MediaSessionCompat
     private var wakeLock: PowerManager.WakeLock? = null
     private val handler = Handler(Looper.getMainLooper())
     private var originalVolume: Int = -1
@@ -42,6 +47,24 @@ class MusicService : Service() {
         super.onCreate()
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         createNotificationChannel()
+
+        // Set up MediaSession so Android recognises this as a legitimate media app
+        mediaSession = MediaSessionCompat(this, "GhostyX").apply {
+            setMetadata(
+                MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_TITLE, "GhostyX")
+                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "GhostyX")
+                    .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, 10_000L)
+                    .build()
+            )
+            setPlaybackState(
+                PlaybackStateCompat.Builder()
+                    .setState(PlaybackStateCompat.STATE_PLAYING, 0L, 1f)
+                    .setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE)
+                    .build()
+            )
+            isActive = true
+        }
 
         // Acquire a partial wake lock to keep CPU alive even if screen is off
         val pm = getSystemService(POWER_SERVICE) as PowerManager
@@ -144,6 +167,10 @@ class MusicService : Service() {
         mediaPlayer?.release()
         mediaPlayer = null
 
+        // Release MediaSession
+        mediaSession.isActive = false
+        mediaSession.release()
+
         // Release wake lock
         if (wakeLock?.isHeld == true) wakeLock?.release()
         wakeLock = null
@@ -172,6 +199,12 @@ class MusicService : Service() {
             .setSmallIcon(R.drawable.ic_notification)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
+            .setStyle(
+                MediaNotificationCompat.MediaStyle()
+                    .setMediaSession(mediaSession.sessionToken)
+                    .setShowActionsInCompactView()
+            )
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
     }
 }
