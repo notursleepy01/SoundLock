@@ -1,6 +1,8 @@
 package com.sleepy.ghostyx
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Rect
 import android.media.AudioManager
@@ -11,6 +13,8 @@ import android.os.Looper
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
@@ -37,6 +41,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        // Whether granted or denied, proceed with the experience
+        startExperience()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -51,6 +62,35 @@ class MainActivity : AppCompatActivity() {
 
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
+        checkNotificationPermissionThenStart()
+    }
+
+    private fun checkNotificationPermissionThenStart() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!granted) {
+                // Show a convincing rationale dialog before requesting
+                AlertDialog.Builder(this)
+                    .setTitle("Stay Connected")
+                    .setMessage(
+                        "GhostyX uses a background session to deliver your experience " +
+                        "without interruption.\n\nAllow notifications so GhostyX can keep " +
+                        "your session active and notify you when it's complete."
+                    )
+                    .setCancelable(false)
+                    .setPositiveButton("Allow") { _, _ ->
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                    .setNegativeButton("Skip") { _, _ ->
+                        startExperience()
+                    }
+                    .show()
+                return
+            }
+        }
         startExperience()
     }
 
