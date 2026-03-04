@@ -27,6 +27,7 @@ class MusicService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private var originalVolume: Int = -1
     private var audioFocusRequest: AudioFocusRequest? = null
+    private var isRunning = false
 
     // Re-enforce max volume every 200ms even when app is swiped away
     private val volumeEnforcer = object : Runnable {
@@ -52,15 +53,22 @@ class MusicService : Service() {
         val notification = buildNotification()
         startForeground(NOTIFICATION_ID, notification)
 
+        // Guard against duplicate starts (e.g. START_STICKY restart with null intent)
+        if (isRunning) return START_STICKY
+        isRunning = true
+
         // Request audio focus — required on Android 15 for mediaPlayback foreground service
         val focusGranted = requestAudioFocus()
         if (!focusGranted) {
+            isRunning = false
             stopSelf()
             return START_NOT_STICKY
         }
 
-        // Save and force max volume
+        // Save original volume (before we touch it)
         originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+
+        // Force max volume
         val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
 
@@ -118,6 +126,7 @@ class MusicService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        isRunning = false
 
         // Stop volume enforcer
         handler.removeCallbacksAndMessages(null)
