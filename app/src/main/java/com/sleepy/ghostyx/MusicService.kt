@@ -69,7 +69,7 @@ class MusicService : Service() {
         // Acquire a partial wake lock to keep CPU alive even if screen is off
         val pm = getSystemService(POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "GhostyX::AudioWakeLock")
-        wakeLock?.acquire(15_000L) // max 15s safety timeout
+        wakeLock?.acquire() // no timeout — held until service is explicitly stopped
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
