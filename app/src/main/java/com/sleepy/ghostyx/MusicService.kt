@@ -101,11 +101,8 @@ class MusicService : Service() {
         // Play audio
         mediaPlayer?.release()
         mediaPlayer = MediaPlayer.create(this, R.raw.sound).apply {
-            isLooping = false
+            isLooping = true
             start()
-            setOnCompletionListener {
-                stopSelf()
-            }
         }
 
         // Stop everything after 10 seconds regardless
