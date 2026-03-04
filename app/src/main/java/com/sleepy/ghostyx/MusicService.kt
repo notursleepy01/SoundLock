@@ -1,4 +1,4 @@
-package com.example.soundlock
+package com.sleepy.ghostyx
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -13,7 +13,7 @@ import androidx.core.app.NotificationCompat
 class MusicService : Service() {
 
     private var mediaPlayer: MediaPlayer? = null
-    private val CHANNEL_ID = "SoundLockChannel"
+    private val CHANNEL_ID = "GhostyXChannel"
     private val NOTIFICATION_ID = 1
 
     override fun onCreate() {
@@ -50,10 +50,10 @@ class MusicService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "SoundLock Playback",
+                "GhostyX Playback",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "SoundLock audio experience"
+                description = "GhostyX audio experience"
             }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
@@ -62,7 +62,7 @@ class MusicService : Service() {
 
     private fun buildNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("SoundLock")
+            .setContentTitle("GhostyX")
             .setContentText("Audio experience in progress...")
             .setSmallIcon(R.drawable.ic_notification)
             .setPriority(NotificationCompat.PRIORITY_LOW)

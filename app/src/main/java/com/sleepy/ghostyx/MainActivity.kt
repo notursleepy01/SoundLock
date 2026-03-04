@@ -1,4 +1,4 @@
-package com.example.soundlock
+package com.sleepy.ghostyx
 
 import android.content.Intent
 import android.graphics.Color

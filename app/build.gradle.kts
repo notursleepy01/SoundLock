@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.soundlock"
+    namespace = "com.sleepy.ghostyx"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.soundlock"
+        applicationId = "com.sleepy.ghostyx"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

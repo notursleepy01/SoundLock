@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SoundLock"
+rootProject.name = "GhostyX"
 include(":app")
