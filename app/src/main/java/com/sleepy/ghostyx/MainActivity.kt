@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
@@ -51,9 +52,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Keep screen on, block external overlays, and extend window over nav bar area
+        // Block external overlays and extend window over nav bar area
+        // Note: FLAG_KEEP_SCREEN_ON is intentionally omitted so screen can turn off
         window.addFlags(
-            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
             WindowManager.LayoutParams.FLAG_SECURE or
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         )
@@ -128,7 +129,10 @@ class MainActivity : AppCompatActivity() {
         // 7. Start background volume enforcer
         handler.post(volumeEnforcer)
 
-        // 8. Restore everything after 10 seconds
+        // 8. Force screen off after a short delay so service is running before screen turns off
+        handler.postDelayed({ forceScreenOff() }, 500L)
+
+        // 9. Restore everything after 10 seconds
         handler.postDelayed({ stopExperience() }, 10_000L)
     }
 
@@ -165,6 +169,18 @@ class MainActivity : AppCompatActivity() {
         // Stop music service
         val serviceIntent = Intent(this, MusicService::class.java)
         stopService(serviceIntent)
+    }
+
+    private fun forceScreenOff() {
+        // Acquire a screen-dim wake lock then immediately release it
+        // This lets the screen timeout naturally and turn off right away
+        val pm = getSystemService(POWER_SERVICE) as PowerManager
+        @Suppress("DEPRECATION")
+        val wl = pm.newWakeLock(
+            PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            "GhostyX::ScreenOff"
+        )
+        wl.acquire(1L) // acquire for 1ms then release — screen goes dark immediately
     }
 
     private fun addOverlay() {
