@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Deep purple/indigo gradient background -->
+    <path
+        android:fillColor="#1A0533"
+        android:pathData="M0,0 L108,0 L108,108 L0,108 Z" />
+
+    <!-- Subtle radial glow in center -->
+    <path
+        android:fillColor="#2D1060"
+        android:pathData="M54,54 m-45,0 a45,45 0 1,0 90,0 a45,45 0 1,0 -90,0" />
+
+    <!-- Inner glow -->
+    <path
+        android:fillColor="#3D1880"
+        android:pathData="M54,54 m-28,0 a28,28 0 1,0 56,0 a28,28 0 1,0 -56,0" />
+
+</vector>

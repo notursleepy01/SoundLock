@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer soft glow ring -->
+    <path
+        android:fillColor="#1AFFFFFF"
+        android:pathData="M54,18 C34.12,18 18,34.12 18,54 C18,73.88 34.12,90 54,90 C73.88,90 90,73.88 90,54 C90,34.12 73.88,18 54,18 Z" />
+
+    <!-- Ghost body — rounded teardrop shape -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M54,28
+            C42.95,28 34,36.95 34,48
+            L34,66
+            C34,66 38,63 42,66
+            C46,69 50,63 54,66
+            C58,69 62,63 66,66
+            C70,69 74,66 74,66
+            L74,48
+            C74,36.95 65.05,28 54,28 Z" />
+
+    <!-- Left eye -->
+    <path
+        android:fillColor="#6C3FD6"
+        android:pathData="M46,50 C46,47.79 47.79,46 50,46 C52.21,46 54,47.79 54,50 C54,52.21 52.21,54 50,54 C47.79,54 46,52.21 46,50 Z" />
+
+    <!-- Right eye -->
+    <path
+        android:fillColor="#6C3FD6"
+        android:pathData="M54,50 C54,47.79 55.79,46 58,46 C60.21,46 62,47.79 62,50 C62,52.21 60.21,54 58,54 C55.79,54 54,52.21 54,50 Z" />
+
+    <!-- X mark overlay — left-top to right-bottom stroke -->
+    <path
+        android:fillColor="#6C3FD6"
+        android:strokeWidth="0"
+        android:pathData="
+            M47,43 L52,48 L57,43 L61,43 L55,49.5 L61,56 L57,56 L52,51 L47,56 L43,56 L49,49.5 L43,43 Z" />
+
+</vector>
