@@ -2,6 +2,7 @@ package com.sleepy.ghostyx
 
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Rect
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
@@ -15,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.doOnLayout
 
 class MainActivity : AppCompatActivity() {
 
@@ -38,10 +40,11 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Keep screen on and block external overlays
+        // Keep screen on, block external overlays, and extend window over nav bar area
         window.addFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-            WindowManager.LayoutParams.FLAG_SECURE
+            WindowManager.LayoutParams.FLAG_SECURE or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         )
 
         setContentView(R.layout.activity_main)
@@ -138,6 +141,15 @@ class MainActivity : AppCompatActivity() {
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT
             )
         )
+        // Exclude the entire screen from system gesture recognition (API 29+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            overlayView.doOnLayout {
+                val display = windowManager.currentWindowMetrics.bounds
+                overlayView.systemGestureExclusionRects = listOf(
+                    Rect(0, 0, display.width(), display.height())
+                )
+            }
+        }
     }
 
     private fun hideSystemBars() {
@@ -145,7 +157,7 @@ class MainActivity : AppCompatActivity() {
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.hide(WindowInsetsCompat.Type.systemBars())
         controller.systemBarsBehavior =
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_BARS_BY_SWIPE
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_BARS_BY_TOUCH
     }
 
     private fun showSystemBars() {
