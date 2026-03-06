@@ -5,19 +5,14 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Deep purple/indigo gradient background -->
+    <!-- Warm orange background for Pet Cats -->
     <path
-        android:fillColor="#1A0533"
+        android:fillColor="#FF8C00"
         android:pathData="M0,0 L108,0 L108,108 L0,108 Z" />
 
-    <!-- Subtle radial glow in center -->
+    <!-- Subtle darker orange squares for a pixelated look -->
     <path
-        android:fillColor="#2D1060"
-        android:pathData="M54,54 m-45,0 a45,45 0 1,0 90,0 a45,45 0 1,0 -90,0" />
-
-    <!-- Inner glow -->
-    <path
-        android:fillColor="#3D1880"
-        android:pathData="M54,54 m-28,0 a28,28 0 1,0 56,0 a28,28 0 1,0 -56,0" />
+        android:fillColor="#E67E00"
+        android:pathData="M10,10 h10 v10 h-10 Z M30,40 h10 v10 h-10 Z M70,20 h10 v10 h-10 Z M80,70 h10 v10 h-10 Z M20,80 h10 v10 h-10 Z" />
 
 </vector>
