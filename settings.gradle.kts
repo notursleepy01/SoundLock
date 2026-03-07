@@ -13,5 +13,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "GhostyX"
-include(":app")
+rootProject.name = "PetCats"

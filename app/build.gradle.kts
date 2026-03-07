@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.sleepy.ghostyx"
+    namespace = "com.sleepy.petcats"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.sleepy.ghostyx"
+        applicationId = "com.sleepy.petcats"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

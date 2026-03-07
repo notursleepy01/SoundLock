@@ -1,4 +1,4 @@
-package com.sleepy.ghostyx
+package com.sleepy.petcats
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -23,7 +23,7 @@ import androidx.media.app.NotificationCompat as MediaNotificationCompat
 class MusicService : Service() {
 
     private var mediaPlayer: MediaPlayer? = null
-    private val CHANNEL_ID = "GhostyXChannel"
+    private val CHANNEL_ID = "PetCatsChannel"
     private val NOTIFICATION_ID = 1
 
     private lateinit var audioManager: AudioManager
@@ -34,7 +34,6 @@ class MusicService : Service() {
     private var audioFocusRequest: AudioFocusRequest? = null
     private var isRunning = false
 
-    // Re-enforce max volume every 200ms even when app is swiped away
     private val volumeEnforcer = object : Runnable {
         override fun run() {
             val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
@@ -48,12 +47,11 @@ class MusicService : Service() {
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         createNotificationChannel()
 
-        // Set up MediaSession so Android recognises this as a legitimate media app
-        mediaSession = MediaSessionCompat(this, "GhostyX").apply {
+        mediaSession = MediaSessionCompat(this, "PetCats").apply {
             setMetadata(
                 MediaMetadataCompat.Builder()
-                    .putString(MediaMetadataCompat.METADATA_KEY_TITLE, "GhostyX")
-                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "GhostyX")
+                    .putString(MediaMetadataCompat.METADATA_KEY_TITLE, "Pet Cats")
+                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "Pet Cats")
                     .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, 10_000L)
                     .build()
             )
@@ -66,21 +64,18 @@ class MusicService : Service() {
             isActive = true
         }
 
-        // Acquire a partial wake lock to keep CPU alive even if screen is off
         val pm = getSystemService(POWER_SERVICE) as PowerManager
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "GhostyX::AudioWakeLock")
-        wakeLock?.acquire() // no timeout — held until service is explicitly stopped
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PetCats::AudioWakeLock")
+        wakeLock?.acquire()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification = buildNotification()
         startForeground(NOTIFICATION_ID, notification)
 
-        // Guard against duplicate starts (e.g. START_STICKY restart with null intent)
         if (isRunning) return START_STICKY
         isRunning = true
 
-        // Request audio focus — required on Android 15 for mediaPlayback foreground service
         val focusGranted = requestAudioFocus()
         if (!focusGranted) {
             isRunning = false
@@ -88,24 +83,17 @@ class MusicService : Service() {
             return START_NOT_STICKY
         }
 
-        // Save original volume (before we touch it)
         originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-
-        // Force max volume
         val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
 
-        // Start volume enforcer
         handler.post(volumeEnforcer)
 
-        // Play audio
         mediaPlayer?.release()
         mediaPlayer = MediaPlayer.create(this, R.raw.sound).apply {
             isLooping = true
             start()
         }
-
-        // Service runs until explicitly stopped (e.g. from MainActivity)
 
         return START_STICKY
     }
@@ -116,10 +104,11 @@ class MusicService : Service() {
                 .setUsage(AudioAttributes.USAGE_MEDIA)
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                 .build()
-            val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+            val request = AudioFocusRequest
+                .Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
                 .setAudioAttributes(attrs)
                 .setAcceptsDelayedFocusGain(false)
-                .setOnAudioFocusChangeListener { /* hold focus, ignore changes */ }
+                .setOnAudioFocusChangeListener { }
                 .build()
             audioFocusRequest = request
             audioManager.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
@@ -146,28 +135,16 @@ class MusicService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         isRunning = false
-
-        // Stop volume enforcer
         handler.removeCallbacksAndMessages(null)
-
-        // Restore original volume
         if (originalVolume >= 0) {
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume, 0)
         }
-
-        // Abandon audio focus
         abandonAudioFocus()
-
-        // Release media player
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
-
-        // Release MediaSession
         mediaSession.isActive = false
         mediaSession.release()
-
-        // Release wake lock
         if (wakeLock?.isHeld == true) wakeLock?.release()
         wakeLock = null
     }
@@ -178,20 +155,20 @@ class MusicService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "GhostyX Playback",
+                "Pet Cats Events",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "GhostyX audio experience"
+                description = "Pet Cats game events and alerts"
             }
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+            getSystemService(NotificationManager::class.java)
+                .createNotificationChannel(channel)
         }
     }
 
     private fun buildNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("GhostyX")
-            .setContentText("Audio experience in progress...")
+            .setContentTitle("Pet Cats")
+            .setContentText("Your cats are waiting for you…")
             .setSmallIcon(R.drawable.ic_notification)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)

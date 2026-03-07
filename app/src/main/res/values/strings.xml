@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GhostyX</string>
-    <string name="channel_name">GhostyX Playback</string>
-    <string name="notification_title">GhostyX</string>
-    <string name="notification_text">Audio experience in progress...</string>
+    <string name="app_name">Pet Cats</string>
+    <string name="channel_name">Pet Cats Events</string>
+    <string name="notification_title">Pet Cats</string>
+    <string name="notification_text">Your cats are waiting for you…</string>
 </resources>

@@ -3,8 +3,149 @@
     android:id="@+id/root_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/black">
+    android:background="@color/pixel_bg">
 
-    <!-- The black overlay will be added programmatically on top -->
+    <!-- Pixel art starfield background dots (decorative, drawn in code) -->
+
+    <!-- Main menu card -->
+    <LinearLayout
+        android:id="@+id/menu_container"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:padding="0dp">
+
+        <!-- Pixel border panel wrapper -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/pixel_panel_border"
+            android:padding="20dp">
+
+            <!-- Title sparkle row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="★"
+                    android:textColor="@color/pixel_star"
+                    android:textSize="14sp"
+                    android:fontFamily="monospace" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="  ✦  "
+                    android:textColor="@color/pixel_cyan"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="★"
+                    android:textColor="@color/pixel_star"
+                    android:textSize="14sp"
+                    android:fontFamily="monospace" />
+
+            </LinearLayout>
+
+            <!-- App title -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="PET CATS"
+                android:textColor="@color/pixel_accent"
+                android:textSize="32sp"
+                android:fontFamily="monospace"
+                android:gravity="center"
+                android:letterSpacing="0.15"
+                android:layout_marginBottom="2dp" />
+
+            <!-- Subtitle -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="~ v1.0 ~"
+                android:textColor="@color/pixel_text_dim"
+                android:textSize="12sp"
+                android:fontFamily="monospace"
+                android:gravity="center"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Cat ASCII art -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=" /\\_/\\ \n( o.o )\n > ^ <\n~( : )~"
+                android:textColor="@color/pixel_cyan"
+                android:textSize="16sp"
+                android:fontFamily="monospace"
+                android:gravity="center"
+                android:lineSpacingMultiplier="1.2"
+                android:layout_marginBottom="20dp" />
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:background="@color/pixel_border"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Description blurb -->
+            <TextView
+                android:id="@+id/tv_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="[!] NOTIFICATIONS REQUIRED\n\nEnable alerts to receive\ngame events &#38; cat updates!\n\nDon&#39;t miss special events!"
+                android:textColor="@color/pixel_text"
+                android:textSize="12sp"
+                android:fontFamily="monospace"
+                android:gravity="center"
+                android:lineSpacingMultiplier="1.4"
+                android:layout_marginBottom="20dp" />
+
+            <!-- Allow button -->
+            <TextView
+                android:id="@+id/btn_allow"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="[ ALLOW &#38; CONTINUE ]"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:fontFamily="monospace"
+                android:gravity="center"
+                android:background="@drawable/pixel_btn_primary"
+                android:layout_marginBottom="10dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <!-- Deny button -->
+            <TextView
+                android:id="@+id/btn_deny"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:text="[ DENY ]"
+                android:textColor="@color/pixel_text_dim"
+                android:textSize="12sp"
+                android:fontFamily="monospace"
+                android:gravity="center"
+                android:background="@drawable/pixel_btn_secondary"
+                android:clickable="true"
+                android:focusable="true" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Overlay added programmatically on top -->
 
 </FrameLayout>

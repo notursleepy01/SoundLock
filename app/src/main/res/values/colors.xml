@@ -2,9 +2,22 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
+
+    <!-- Pixel art palette -->
+    <color name="pixel_bg">#0D0D1A</color>
+    <color name="pixel_panel">#1A1A2E</color>
+    <color name="pixel_border">#4A4AFF</color>
+    <color name="pixel_border_dark">#2A2A8A</color>
+    <color name="pixel_accent">#FF6B9D</color>
+    <color name="pixel_accent_dark">#C94070</color>
+    <color name="pixel_text">#E8E8FF</color>
+    <color name="pixel_text_dim">#8888AA</color>
+    <color name="pixel_star">#FFD700</color>
+    <color name="pixel_green">#4AFF6B</color>
+    <color name="pixel_cyan">#4AFFEE</color>
+    <color name="pixel_purple">#CC44FF</color>
+    <color name="pixel_btn_primary">#4A4AFF</color>
+    <color name="pixel_btn_primary_dark">#2A2A9A</color>
+    <color name="pixel_btn_danger">#FF4A4A</color>
+    <color name="pixel_btn_danger_dark">#9A2A2A</color>
 </resources>
