@@ -5,8 +5,6 @@
     android:layout_height="match_parent"
     android:background="@color/pixel_bg">
 
-    <!-- Pixel art starfield background dots (decorative, drawn in code) -->
-
     <!-- Main menu card -->
     <LinearLayout
         android:id="@+id/menu_container"
@@ -85,7 +83,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text=" /\\_/\\ \n( o.o )\n > ^ <\n~( : )~"
+                android:text=" /\\_/\\ \n( o.o )\n &gt; ^ &lt;\n~( : )~"
                 android:textColor="@color/pixel_cyan"
                 android:textSize="16sp"
                 android:fontFamily="monospace"
@@ -118,7 +116,7 @@
                 android:id="@+id/btn_allow"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:text="[ ALLOW &#38; CONTINUE ]"
+                android:text="[ ALLOW &amp; CONTINUE ]"
                 android:textColor="@color/white"
                 android:textSize="13sp"
                 android:fontFamily="monospace"
