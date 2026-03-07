@@ -40,4 +40,5 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.media)
+    implementation(libs.androidx.work.runtime.ktx)
 }

