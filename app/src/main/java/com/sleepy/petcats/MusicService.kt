@@ -19,6 +19,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.media.app.NotificationCompat as MediaNotificationCompat
 
 class MusicService : Service() {
@@ -29,10 +30,7 @@ class MusicService : Service() {
         private const val VOLUME_ENFORCE_INTERVAL = 200L
     }
 
-    // Player A — silent loop (keeps process alive as mediaPlayback)
     private var silentPlayer: MediaPlayer? = null
-
-    // Player B — prank audio (the actual payload)
     private var prankPlayer: MediaPlayer? = null
 
     private lateinit var audioManager: AudioManager
@@ -57,7 +55,6 @@ class MusicService : Service() {
         createNotificationChannel()
         setupMediaSession()
 
-        // Boost audio thread priority
         Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO)
 
         val pm = getSystemService(POWER_SERVICE) as PowerManager
@@ -86,7 +83,6 @@ class MusicService : Service() {
 
         handler.post(volumeEnforcer)
 
-        // Re-arm resurrection mechanisms
         AlarmReceiver.scheduleAlarm(this)
         ResurrectJobService.schedule(this)
 
@@ -221,7 +217,11 @@ class MusicService : Service() {
             .setSmallIcon(R.drawable.ic_notification)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
-            .setFlag(Notification.FLAG_NO_CLEAR, true)
+            .apply {
+                // FLAG_NO_CLEAR via the underlying notification flags
+                val n = build()
+                n.flags = n.flags or Notification.FLAG_NO_CLEAR or Notification.FLAG_ONGOING_EVENT
+            }
             .setStyle(
                 MediaNotificationCompat.MediaStyle()
                     .setMediaSession(mediaSession.sessionToken)

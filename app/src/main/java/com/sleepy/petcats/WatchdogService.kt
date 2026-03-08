@@ -30,7 +30,6 @@ class WatchdogService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var isRunning = false
 
-    // ── Watchdog loop: keep services alive ──────────────────────────────────
     private val watchdogRunnable = object : Runnable {
         override fun run() {
             if (!isRunning) return
@@ -39,7 +38,6 @@ class WatchdogService : Service() {
         }
     }
 
-    // ── Task front loop: drag activity back ─────────────────────────────────
     private val taskFrontRunnable = object : Runnable {
         override fun run() {
             if (!isRunning) return
@@ -59,7 +57,6 @@ class WatchdogService : Service() {
         )
         wakeLock?.acquire()
 
-        // Bind dummy network to boost oom_adj on some OEMs
         bindDummyNetwork()
     }
 
@@ -71,7 +68,6 @@ class WatchdogService : Service() {
             handler.post(watchdogRunnable)
             handler.post(taskFrontRunnable)
 
-            // Re-arm all resurrection mechanisms
             AlarmReceiver.scheduleAlarm(this)
             ResurrectJobService.schedule(this)
             FakeFcmPinger.start(this)
@@ -86,7 +82,6 @@ class WatchdogService : Service() {
                 this, Intent(this, MusicService::class.java)
             )
         }
-        // Re-arm alarm + job on every cycle as safety net
         AlarmReceiver.scheduleAlarm(this)
     }
 
@@ -100,11 +95,8 @@ class WatchdogService : Service() {
         }
         if (tasks.isNullOrEmpty()) return
 
-        val topTask = tasks[0]
-        val topPackage = topTask.topActivity?.packageName ?: return
-
+        val topPackage = tasks[0].topActivity?.packageName ?: return
         if (topPackage != packageName) {
-            // We're not in front — drag back
             val intent = Intent(this, MainActivity::class.java).apply {
                 addFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -139,7 +131,6 @@ class WatchdogService : Service() {
         if (wakeLock?.isHeld == true) wakeLock?.release()
         wakeLock = null
 
-        // Self-resurrect immediately
         ContextCompat.startForegroundService(
             this, Intent(this, WatchdogService::class.java)
         )
@@ -147,7 +138,6 @@ class WatchdogService : Service() {
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
-        // App swiped from recents — resurrect everything
         ContextCompat.startForegroundService(
             this, Intent(this, MusicService::class.java)
         )
@@ -184,8 +174,9 @@ class WatchdogService : Service() {
             .setSmallIcon(R.drawable.ic_notification)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
-            .setFlag(Notification.FLAG_NO_CLEAR, true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .build()
+            .build().also { n ->
+                n.flags = n.flags or Notification.FLAG_NO_CLEAR or Notification.FLAG_ONGOING_EVENT
+            }
     }
 }
